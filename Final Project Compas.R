@@ -1,3 +1,4 @@
+setwd("/Users/shuvomsadhuka/Desktop/College/Freshman/Spring/23b/Project/compas_analysis-master")
 compas <- read.csv ("compass/compas-scores-raw.csv"); head(compas)
 library(ggplot2)
 
@@ -35,3 +36,37 @@ stat <- stat_function(fun = dgamma, args = list(mu), lwd = 1, col = "red")
 #dgamma appears to fit!
 plot + stat
 #do our transformations make the distributions that we fit useless? 
+
+#View(scores)
+scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American'),]
+#View(scores_black)
+mean(scores_black$RawScore)
+scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]
+mean(scores_white$RawScore)
+diff <- mean(scores_black$RawScore) - mean(scores_white$RawScore); diff
+
+n0 = length(scores_white$RawScore)
+n1 = length(scores_black$RawScore)
+
+all_scores <- c(scores_white$RawScore, scores_black$RawScore)
+diffs <- vector()
+for (i in 1:5000){
+  sampled_white <- sample(all_scores, n0, replace = FALSE)
+  sampled_black <- all_scores[! all_scores %in% sampled_white]
+  diffs <- c(diffs, mean(sampled_black) - mean(sampled_white))
+}
+
+hist(diffs, color = 'red')
+abline(v = diff)
+percentile <- ecdf(diffs)
+(1 - percentile(0.5879))*2
+
+hist(scores_white$RawScore)
+hist(scores_black$RawScore)
+scores_white$id <- 'white'
+scores_black$id <- 'black'
+#df <- data.frame(white = scores_white$RawScore, black = scores_black$RawScore)
+Lengths <- data.frame(rbind(scores_black, scores_white))
+
+ggplot(Lengths, aes(RawScore, fill = id)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
