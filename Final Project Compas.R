@@ -1,4 +1,3 @@
-setwd("/Users/shuvomsadhuka/Desktop/College/Freshman/Spring/23b/Project/compas_analysis-master")
 compas <- read.csv ("compass/compas-scores-raw.csv"); head(compas)
 library(ggplot2)
 
@@ -70,3 +69,96 @@ Lengths <- data.frame(rbind(scores_black, scores_white))
 
 ggplot(Lengths, aes(RawScore, fill = id)) + 
   geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
+
+#to make pretty contingency tables
+library(gmodels)
+
+#are race and a display text of "Risk of Violence" independent?
+#extracting logical columns
+risk_Log <- compas$DisplayText == "Risk of Violence"; sum(risk_Log)
+race_Log <- compas$Ethnic_Code_Text != "Caucasian"; sum(race_Log)
+dataLog <- data.frame(risk_Log, race_Log)
+#a contingency table showing all 4 options
+Obs <- table (dataLog$risk_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$risk_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+
+#are race and a display text of "Risk of Recidivism" independent?
+#extracting logical columns
+recid_Log <- compas$DisplayText == "Risk of Recidivism"; sum(recid_Log)
+dataLog$recid_Log <- recid_Log
+#a contingency table showing all 4 options
+Obs <- table (dataLog$recid_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$recid_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+
+#are race and a display text of "Risk of Failure to Appear" independent?
+#extracting logical columns
+appear_Log <- compas$DisplayText == "Risk of Recidivism"; sum(appear_Log)
+dataLog$appear_Log <- appear_Log
+#a contingency table showing all 4 options
+Obs <- table (dataLog$appear_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$appear_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+
+#our three contingency tables displayed nicely
+#Risk of Violence versus Race (Caucasian or not)
+CrossTable(dataLog$risk_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Violence"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#Risk of Recidivism versus Race (Caucasian or not)
+CrossTable(dataLog$recid_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Recidivism"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#Risk of Failure to Appear versus Race (Caucasian or not)
+CrossTable(dataLog$appear_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Failure to Appear"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+
+#another way of showing race and display text are independent - 
+#covariance and correlation are close to 0
+#race and risk of violence
+cov(dataLog$race_Log, dataLog$risk_Log)
+cor(dataLog$race_Log, dataLog$risk_Log)
+#race and risk of recidivism
+cov(dataLog$race_Log, dataLog$recid_Log)
+cor(dataLog$race_Log, dataLog$recid_Log)
+#race and risk of failure to appear
+cov(dataLog$race_Log, dataLog$appear_Log)
+cor(dataLog$race_Log, dataLog$appear_Log)
+#all are close to 0
+
+#barplot of various display texts
+#they are all perfectly equal! weird!
+plot <- ggplot(data = compas, aes(x = factor(DisplayText))) + 
+geom_bar(stat="count", width=0.7, fill="steelblue") + theme_minimal() +
+ggtitle("Display Text vs Frequency") + xlab("Display Text") + ylab("Frequency"); plot
+
+
