@@ -1,16 +1,26 @@
-compas <- read.csv ("compass/compas-scores-raw.csv"); head(compas)
+#Final Project
+#Lavanya S. and Shuvom S.
+#POINT 22: team consists of exactly 2 members
 library(ggplot2)
+library(gmodels)
+
+compass <- read.csv ("compass/compas-scores-raw.csv"); head(compass)
+#REQUIRED: dataframe
+compas <- data.frame(compass); head(compas)
 
 #messy but there are two clear clusters we can isolate
 ggplot(compas, aes(x=RawScore)) + geom_histogram()
+#REQUIRED: histogram
 
 #first cluster -> scores < 7 (this is an estimate, 
 #should we try using a clustering algorithm like k-means or something?)
 scores <- compas[which(compas$RawScore < 7),]; head(scores)
+#REQUIRED: numerical column
 max <- max(scores$RawScore)
 min <- min(scores$RawScore)
 #squeezing the values to be between 0 and 1
 scores$score <- (max - scores$RawScore) / (max - min)
+#histogram using ggplot
 plot <- ggplot(scores, aes(score)) + geom_histogram(aes(y = stat(density))); plot
 mu <- mean(scores$score); mu
 var <- var(scores$score); var
@@ -21,6 +31,7 @@ param2 <- 11913/3725
 stat <- stat_function(fun = dbeta, args = list(param1, param2), lwd = 1, col = "red")
 #that looks quite accurate!
 plot + stat
+#REQUIRED: probabiity density function overlaid on a histogram
 
 #second cluster -> scores > 7
 scores2 <- compas[which(compas$RawScore >= 7),]
@@ -32,9 +43,10 @@ var <- var(scores2$score); var
 plot <- ggplot(scores2, aes(score)) + geom_histogram(aes(y = stat(density)), binwidth = 0.25); plot
 #let's try dgamma
 stat <- stat_function(fun = dgamma, args = list(mu), lwd = 1, col = "red")
+#POINT 6: probability distribution function other than binomial, normal, or chi-square
+#POINT 11: graphics using ggplot
 #dgamma appears to fit!
 plot + stat
-#do our transformations make the distributions that we fit useless? 
 
 #View(scores)
 scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American'),]
@@ -70,18 +82,17 @@ Lengths <- data.frame(rbind(scores_black, scores_white))
 ggplot(Lengths, aes(RawScore, fill = id)) + 
   geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
 
-#to make pretty contingency tables
-library(gmodels)
-
 #are race and a display text of "Risk of Violence" independent?
 #extracting logical columns
 risk_Log <- compas$DisplayText == "Risk of Violence"; sum(risk_Log)
 race_Log <- compas$Ethnic_Code_Text != "Caucasian"; sum(race_Log)
+#REQUIRED: two categorical columns
 dataLog <- data.frame(risk_Log, race_Log)
 #a contingency table showing all 4 options
 Obs <- table (dataLog$risk_Log, dataLog$race_Log); Obs
 #what we would expect if the factors are independent
 Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#REQUIRED: analysis of contingency tables
 #WOAH these are the exact same 
 #chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
 #as display text are independent
@@ -93,6 +104,8 @@ ChiSq <-function(Obs,Exp){
 #same chi-sq statistic and p value as above
 CSq <- ChiSq(Obs, Expected); CSq   
 pchisq(CSq, df = 3, lower.tail = FALSE)
+#REQUIRED: p value using a distribution function
+#POINT 9: relationship that we expected to be statistically significant but was not
 
 #are race and a display text of "Risk of Recidivism" independent?
 #extracting logical columns
@@ -141,6 +154,7 @@ CrossTable(dataLog$risk_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Viol
 CrossTable(dataLog$recid_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Recidivism"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
 #Risk of Failure to Appear versus Race (Caucasian or not)
 CrossTable(dataLog$appear_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Failure to Appear"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#REQUIRED: graphical contingency tables
 
 #another way of showing race and display text are independent - 
 #covariance and correlation are close to 0
@@ -154,11 +168,13 @@ cor(dataLog$race_Log, dataLog$recid_Log)
 cov(dataLog$race_Log, dataLog$appear_Log)
 cor(dataLog$race_Log, dataLog$appear_Log)
 #all are close to 0
+#POINT 16: Covariance and correlation
 
 #barplot of various display texts
 #they are all perfectly equal! weird!
 plot <- ggplot(data = compas, aes(x = factor(DisplayText))) + 
 geom_bar(stat="count", width=0.7, fill="steelblue") + theme_minimal() +
 ggtitle("Display Text vs Frequency") + xlab("Display Text") + ylab("Frequency"); plot
+#REQUIRED: barplot
 
 
