@@ -178,3 +178,106 @@ ggtitle("Display Text vs Frequency") + xlab("Display Text") + ylab("Frequency");
 #REQUIRED: barplot
 
 
+#View(scores)
+scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American' ||
+                               compas$Ethnic_Code_Text == 'African-Am'),]
+#View(scores_black)
+mean(scores_black$RawScore)
+scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]
+mean(scores_white$RawScore)
+diff <- mean(scores_black$RawScore) - mean(scores_white$RawScore); diff
+scores_arabic <- compas[which(compas$Ethnic_Code_Text == 'Arabic'),]
+scores_asian <- compas[which(compas$Ethnic_Code_Text == 'Asian'),]
+scores_hisp <- compas[which(compas$Ethnic_Code_Text == 'Hispanic'),]
+scores_other <- compas[which(compas$Ethnic_Code_Text == 'Other')]
+
+scores_nonwhite <- compas[which(!compas$Ethnic_Code_Text == 'Caucasian'),]
+head(scores_nonwhite)
+
+nw = length(scores_white$RawScore); nw
+nn = length(scores_nonwhite$RawScore); nn
+total = nw+nn
+length(compas$RawScore)
+actual = mean(scores_nonwhite$RawScore) - mean(scores_white$RawScore)
+diffs <- vector()
+
+for (i in 1:5000){
+  all_scores <- c(scores_white$RawScore, scores_nonwhite$RawScore); length(all_scores)
+  sampled_indicies <- sample(1:total, nw, replace = FALSE); sampled_indicies
+  
+  sampled_white <- all_scores[sampled_indicies]
+  mean(sampled_white)
+  
+  sampled_nonwhite<- all_scores[-sampled_indicies]; #print(sampled_nonwhite)
+  mean(sampled_nonwhite)
+  diff <- mean(sampled_white) - mean(sampled_nonwhite)
+  #print(diff)
+  
+  diffs <- c(diffs, diff)
+}
+diffs
+hist(diffs, color = 'red')
+abline(v = actual)
+actual
+diffs_df <- data.frame(x = diffs)
+ggplot(diffs_df, aes(x=x)) + 
+  geom_histogram(binwidth=0.01, colour = "black") + geom_vline(xintercept = 0.2689452, colour = "red")
+
+percentile <- ecdf(diffs)
+(1 - percentile(0.2689452))*2
+
+hist(scores_white$RawScore)
+hist(scores_nonwhite$RawScore)
+scores_white$id <- 'white'
+scores_nonwhite$id <- 'non-white'
+#df <- data.frame(white = scores_white$RawScore, black = scores_black$RawScore)
+Lengths <- data.frame(rbind(scores_nonwhite, scores_white))
+
+ggplot(Lengths, aes(RawScore, fill = id)) + 
+  geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
+
+##t-test
+t.test(scores_white$RawScore, scores_nonwhite$RawScore)
+#lets recreate the t-test manually
+nonwhite_mean <- mean(scores_nonwhite$RawScore)
+white_mean <- mean(scores_white$RawScore)
+nonwhite_sd <- sqrt(var(scores_nonwhite$RawScore))
+white_sd <- sqrt(var(scores_white$RawScore))
+
+std <- sqrt(((nw - 1)*white_sd^2 + (nn - 1)*nonwhite_sd^2)/(nw + nn - 2))*(sqrt(1/nw + 1/nn)); std
+
+t_stat <- (nonwhite_mean - white_mean)/std; t_stat
+
+deg.freedom = nw + nn - 2
+pt(t_stat, deg.freedom, lower.tail = TRUE, log.p = FALSE)*2
+
+#we can also try a z-test
+diff_in_means = nonwhite_mean - white_mean; diff_in_means
+std_norm = sqrt(nonwhite_sd^2/nb + white_sd^2/nw)
+z_stat = diff_in_means/std_norm; z_stat
+pnorm(z_stat, 0, 1, lower.tail = FALSE)
+
+#let's compute a confidence interval
+theta = diff_in_means
+sigma_sq = var(all_scores); sigma_sq
+conf_lower = theta - 1.96 * (sqrt(sigma_sq))/(sqrt(total)); conf_lower #bounds of conf interval
+conf_upper = theta + 1.96 * (sqrt(sigma_sq))/(sqrt(total)); conf_upper
+ 
+#let's do logistic regression on raw score and race
+compas$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
+score <- compas$RawScore
+MLL<- function(alpha, beta) {
+  -sum( log( exp(alpha+beta*score)/(1+exp(alpha+beta*score)) )*compas$race
+        + log(1/(1+exp(alpha+beta*score)))*(1-compas$race) )
+}
+library(stats4)
+plot(score,compas$race)  #not a great candidate for a straight-line approximation, but let's try
+b <- cov(score,compas$race)/var(score)    #easy way to get the slope
+#Here is the formula for the intercept
+a <- mean(compas$race) - b*mean(score);a  
+#We can add this regression line to the plot of the data
+abline(a, b, col = "red")
+#This is bad --- it gives a
+results<-mle(MLL, start = list(alpha = 0, beta = 0)) #an initial guess is required
+results@coef
+curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
