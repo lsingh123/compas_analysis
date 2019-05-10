@@ -177,6 +177,28 @@ geom_bar(stat="count", width=0.7, fill="steelblue") + theme_minimal() +
 ggtitle("Display Text vs Frequency") + xlab("Display Text") + ylab("Frequency"); plot
 #REQUIRED: barplot
 
+#probability of a white person getting a display text of "Risk of Failure to Appear" 
+p1<- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Failure to Appear"))/length(compas$Ethnic_Code_Text)
+p1
+#probability of a non-white person getting a display text of "Risk of Failure to Appear" 
+p2 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Failure to Appear"))/length(compas$Ethnic_Code_Text)
+p2
+#probability of a white person getting a display text of "Risk of Violence" 
+p3 <- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Violence"))/length(compas$Ethnic_Code_Text)
+p3
+#probability of a non-white person getting a display text of "Risk of Violence" 
+p4 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Violence"))/length(compas$Ethnic_Code_Text)
+p4
+#probability of a white person getting a display text of "Risk of Recidivism" 
+p5 <- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Recidivism"))/length(compas$Ethnic_Code_Text)
+p5
+#probability of a non-white person getting a display text of "Risk of Recidivism" 
+p6 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Recidivism"))/length(compas$Ethnic_Code_Text)
+p6
+#in each case, probability of a person of color getting the corresponding display text is higher
+#should equal 1
+p1+p2+p3+p4+p5+p6
+#it does 
 
 #View(scores)
 scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American' ||
