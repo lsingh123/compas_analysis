@@ -49,12 +49,11 @@ stat <- stat_function(fun = dgamma, args = list(mu), lwd = 1, col = "red")
 plot + stat
 
 #let's filter our data by race
-scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American' ||
-                               compas$Ethnic_Code_Text == 'African-Am'),]
+scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American'),]; head(scores_black)
 
 #here's some preliminary summary statistics for blacks, whites
 mean(scores_black$RawScore)
-scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]
+scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]; head(scores_white)
 mean(scores_white$RawScore)
 diff <- mean(scores_black$RawScore) - mean(scores_white$RawScore); diff
 
@@ -62,7 +61,7 @@ diff <- mean(scores_black$RawScore) - mean(scores_white$RawScore); diff
 scores_arabic <- compas[which(compas$Ethnic_Code_Text == 'Arabic'),]
 scores_asian <- compas[which(compas$Ethnic_Code_Text == 'Asian'),]
 scores_hisp <- compas[which(compas$Ethnic_Code_Text == 'Hispanic'),]
-scores_other <- compas[which(compas$Ethnic_Code_Text == 'Other')]
+scores_other <- compas[which(compas$Ethnic_Code_Text == 'Other'),]
 
 #this is all the nonwhite people in the dataset
 scores_nonwhite <- compas[which(!compas$Ethnic_Code_Text == 'Caucasian'),]
