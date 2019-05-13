@@ -146,7 +146,7 @@ type_of_risk <- function(x, y){
   
   diffs_df <- data.frame(x = diffs)
   
-  #we can also make the plot look nicer using ggplot (requirement 11)
+  #POINT 11 - we can also make the plot look nicer using ggplot
   print(ggplot(diffs_df, aes(x=x)) + 
     geom_histogram(binwidth=0.01, colour = "black") + geom_vline(xintercept = actual, colour = "red")
     + labs(title = paste("Permutation Test for ", x)))
