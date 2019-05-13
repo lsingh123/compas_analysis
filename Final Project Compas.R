@@ -1,17 +1,24 @@
-setwd("/Users/shuvomsadhuka/Desktop/College/Freshman/Spring/Math 23C/Project/compas_analysis-master")
+#Final Project Math 23C
+#Lavanya S. and Shuvom S.
+#POINT 22: team consists of exactly 2 members
+
 compas <- read.csv ("compass/compas-scores-raw.csv"); View(compas)
 library(ggplot2)
+library(gmodels)
+library(stats4)
 
 compas[,DisplayText == 'Risk of Violence']
 
-
-#working with Lavanya Singh
 #messy but there are two clear clusters we can isolate
 ggplot(compas, aes(x=RawScore)) + geom_histogram()
+#POINT 11: ggplot
+#let's use R's built-in k-means cluster function
+clusters <- kmeans(compas$RawScore, 2); clusters
+#storing the cluster of each point in the dataframe
+compas$cluster <- clusters$cluster
 
-
-#first cluster -> scores < 7 (this is an estimate, 
-scores <- compas[which(compas$RawScore < 7),]; head(scores)
+#first cluster looks pretty bell shaped
+scores <- compas[which(compas$cluster == 1),]; head(scores)
 max <- max(scores$RawScore)
 min <- min(scores$RawScore)
 #squeezing the values to be between 0 and 1
@@ -26,9 +33,10 @@ param2 <- 11913/3725
 stat <- stat_function(fun = dbeta, args = list(param1, param2), lwd = 1, col = "red")
 #that looks quite accurate!
 plot + stat
+#REQUIRED: probability density curve overlaid on a histogram
 
-#second cluster -> scores > 7
-scores2 <- compas[which(compas$RawScore >= 7),]
+#second cluster 
+scores2 <- compas[which(compas$cluster == 2),]
 #translating the data to the origin
 #and transforming it to lie between 0 and 10
 scores2$score <- (scores2$RawScore - min(scores2$RawScore)) / 4
@@ -39,8 +47,6 @@ plot <- ggplot(scores2, aes(score)) + geom_histogram(aes(y = stat(density)), bin
 stat <- stat_function(fun = dgamma, args = list(mu), lwd = 1, col = "red")
 #dgamma appears to fit!
 plot + stat
-#do our transformations make the distributions that we fit useless? 
-
 
 #let's filter our data by race
 scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American' ||
@@ -62,16 +68,15 @@ scores_other <- compas[which(compas$Ethnic_Code_Text == 'Other')]
 scores_nonwhite <- compas[which(!compas$Ethnic_Code_Text == 'Caucasian'),]
 #let's look at what the data looks like
 head(scores_nonwhite)
- 
 
-#let's do logistic regression on raw score and race (Bernoulli variable) - this is requirement 15
+#let's do logistic regression on raw score and race (Bernoulli variable) 
+#POINT 15: logistic regression
 compas$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
 score <- compas$RawScore
 MLL<- function(alpha, beta) {
   -sum( log( exp(alpha+beta*score)/(1+exp(alpha+beta*score)) )*compas$race
         + log(1/(1+exp(alpha+beta*score)))*(1-compas$race) )
 }
-library(stats4)
 plot(score,compas$race)  #not a great candidate for a straight-line approximation, but let's try
 b <- cov(score,compas$race)/var(score)    #easy way to get the slope
 #Here is the formula for the intercept
@@ -83,15 +88,13 @@ results<-mle(MLL, start = list(alpha = 0, beta = 0)) #an initial guess is requir
 results@coef
 curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 
-
-
-#let's also try a linear regression - this is requirement 14
+#let's also try a linear regression
+#POINT 14: linear regression
 model <- lm(compas$RawScore ~ compas$Person_ID)
 summary(model)
 ggplot(compas, aes(x=Person_ID, y=RawScore)) + 
   geom_point()+
   geom_smooth(method = lm)
-
 
 #we can repeat our analysis by subdividing our population into each individual type of risk
 #this is the "meat" of our analysis
@@ -121,6 +124,7 @@ type_of_risk <- function(x, y){
   length(type$RawScore)
   
   #here's our first statistical test: a permutation test!
+  #REQUIRED: permutation test
   #we want to do a 2-sample permutation test
   #first we compute the actual difference in means
   actual = mean(type_nonwhite$RawScore) - mean(type_white$RawScore)
@@ -156,7 +160,7 @@ type_of_risk <- function(x, y){
   type_nonwhite$id <- 'non-white'
   
   #here's an example of a variation on a graph that we've seen before but haven't done in class 
-  #this is requirement 19 - a graphical display different from the ones in class
+  #POINT 19 - a graphical display different from the ones in class
   Lengths <- data.frame(rbind(type_nonwhite, type_white))
   print(ggplot(Lengths, aes(RawScore, fill = id)) + 
     geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
@@ -189,7 +193,8 @@ type_of_risk <- function(x, y){
   z_stat = diff_in_means/std_norm; z_stat
   print(pnorm(z_stat, 0, 1, lower.tail = FALSE))
   
-  #let's compute a confidence interval - this is requirement 20
+  #let's compute a confidence interval 
+  #POINT 20: confidence interval
   theta = diff_in_means
   sigma_sq = var(all_scores); sigma_sq
   conf_lower = theta - 1.96 * (sqrt(sigma_sq))/(sqrt(total)); print(conf_lower) #bounds of conf interval
@@ -226,3 +231,122 @@ type_of_risk('Pooled', 1)
 
 violence <- compas[which(compas$DisplayText == 'Risk of Violence'),]; View(violence)
 violence_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]
+
+#are race and a display text of "Risk of Violence" independent?
+#extracting logical columns
+risk_Log <- compas$DisplayText == "Risk of Violence"; sum(risk_Log)
+race_Log <- compas$Ethnic_Code_Text != "Caucasian"; sum(race_Log)
+#REQUIRED: two categorical columns
+dataLog <- data.frame(risk_Log, race_Log)
+#a contingency table showing all 4 options
+Obs <- table (dataLog$risk_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#REQUIRED: analysis of contingency tables
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$risk_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+#REQUIRED: p value using a distribution function
+#POINT 9: relationship that we expected to be statistically significant but was not
+
+#are race and a display text of "Risk of Recidivism" independent?
+#extracting logical columns
+recid_Log <- compas$DisplayText == "Risk of Recidivism"; sum(recid_Log)
+dataLog$recid_Log <- recid_Log
+#a contingency table showing all 4 options
+Obs <- table (dataLog$recid_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$recid_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+
+#are race and a display text of "Risk of Failure to Appear" independent?
+#extracting logical columns
+appear_Log <- compas$DisplayText == "Risk of Recidivism"; sum(appear_Log)
+dataLog$appear_Log <- appear_Log
+#a contingency table showing all 4 options
+Obs <- table (dataLog$appear_Log, dataLog$race_Log); Obs
+#what we would expect if the factors are independent
+Expected <- outer(rowSums(Obs), colSums(Obs))/sum(Obs); Expected
+#WOAH these are the exact same 
+#chi-sq: p value is 1 meaning that there is 100% chance that race and risk of violence
+#as display text are independent
+chisq.test(dataLog$appear_Log, dataLog$race_Log)
+#Paul's method of calculating chi-sq value
+ChiSq <-function(Obs,Exp){
+  sum((Obs-Exp)^2/Exp)
+}
+#same chi-sq statistic and p value as above
+CSq <- ChiSq(Obs, Expected); CSq   
+pchisq(CSq, df = 3, lower.tail = FALSE)
+
+#our three contingency tables displayed nicely
+#Risk of Violence versus Race (Caucasian or not)
+CrossTable(dataLog$risk_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Violence"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#Risk of Recidivism versus Race (Caucasian or not)
+CrossTable(dataLog$recid_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Recidivism"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#Risk of Failure to Appear versus Race (Caucasian or not)
+CrossTable(dataLog$appear_Log, dataLog$race_Log, dnn= c("Caucasian", "Risk of Failure to Appear"), prop.t=FALSE, prop.r=FALSE, prop.c=FALSE, prop.chisq = FALSE)
+#REQUIRED: graphical contingency tables
+
+#another way of showing race and display text are independent - 
+#covariance and correlation are close to 0
+#race and risk of violence
+cov(dataLog$race_Log, dataLog$risk_Log)
+cor(dataLog$race_Log, dataLog$risk_Log)
+#race and risk of recidivism
+cov(dataLog$race_Log, dataLog$recid_Log)
+cor(dataLog$race_Log, dataLog$recid_Log)
+#race and risk of failure to appear
+cov(dataLog$race_Log, dataLog$appear_Log)
+cor(dataLog$race_Log, dataLog$appear_Log)
+#all are close to 0
+#POINT 16: Covariance and correlation
+
+#barplot of various display texts
+#they are all perfectly equal! weird!
+plot <- ggplot(data = compas, aes(x = factor(DisplayText))) + 
+  geom_bar(stat="count", width=0.7, fill="steelblue") + theme_minimal() +
+  ggtitle("Display Text vs Frequency") + xlab("Display Text") + ylab("Frequency"); plot
+#REQUIRED: barplot
+
+#probability of a white person getting a display text of "Risk of Failure to Appear" 
+p1<- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Failure to Appear"))/length(compas$Ethnic_Code_Text)
+p1
+#probability of a non-white person getting a display text of "Risk of Failure to Appear" 
+p2 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Failure to Appear"))/length(compas$Ethnic_Code_Text)
+p2
+#probability of a white person getting a display text of "Risk of Violence" 
+p3 <- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Violence"))/length(compas$Ethnic_Code_Text)
+p3
+#probability of a non-white person getting a display text of "Risk of Violence" 
+p4 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Violence"))/length(compas$Ethnic_Code_Text)
+p4
+#probability of a white person getting a display text of "Risk of Recidivism" 
+p5 <- length(which(compas$Ethnic_Code_Text == "Caucasian" & compas$DisplayText == "Risk of Recidivism"))/length(compas$Ethnic_Code_Text)
+p5
+#probability of a non-white person getting a display text of "Risk of Recidivism" 
+p6 <- length(which(compas$Ethnic_Code_Text != "Caucasian" & compas$DisplayText == "Risk of Recidivism"))/length(compas$Ethnic_Code_Text)
+p6
+#in each case, probability of a person of color getting the corresponding display text is higher
+#should equal 1
+p1+p2+p3+p4+p5+p6
+#it does 
+
