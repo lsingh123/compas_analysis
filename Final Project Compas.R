@@ -51,7 +51,7 @@ plot + stat
 #let's filter our data by race
 scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American'),]; head(scores_black)
 
-#here's some preliminary summary statistics for blacks, whites
+#here's some preliminary summary statistics for black people, white people
 mean(scores_black$RawScore)
 scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]; head(scores_white)
 mean(scores_white$RawScore)
