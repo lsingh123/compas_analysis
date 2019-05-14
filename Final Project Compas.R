@@ -68,18 +68,20 @@ scores_nonwhite <- compas[which(!compas$Ethnic_Code_Text == 'Caucasian'),]
 #let's look at what the data looks like
 head(scores_nonwhite)
 
-#let's do logistic regression on raw score and race (Bernoulli variable) 
+#let's do logistic regression on raw score and race (Bernoulli variable) - can we use 
+#the risk of violence raw score to predict race? - if so, we've shown the algo might be biased
 #POINT 15: logistic regression
-compas$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
-score <- compas$RawScore
+violence <- compas[which(compas$DisplayText == 'Risk of Violence'),]
+violence$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
+score <- violence$RawScore
 MLL<- function(alpha, beta) {
-  -sum( log( exp(alpha+beta*score)/(1+exp(alpha+beta*score)) )*compas$race
-        + log(1/(1+exp(alpha+beta*score)))*(1-compas$race) )
+  -sum( log( exp(alpha+beta*score)/(1+exp(alpha+beta*score)) )*violence$race
+        + log(1/(1+exp(alpha+beta*score)))*(1-violence$race) )
 }
-plot(score,compas$race)  #not a great candidate for a straight-line approximation, but let's try
-b <- cov(score,compas$race)/var(score)    #easy way to get the slope
+plot(score,violence$race)  #not a great candidate for a straight-line approximation, but let's try
+b <- cov(score,violence$race)/var(score)    #easy way to get the slope
 #Here is the formula for the intercept
-a <- mean(compas$race) - b*mean(score);a  
+a <- mean(violence$race) - b*mean(score);a  
 #We can add this regression line to the plot of the data
 abline(a, b, col = "red")
 #This is bad --- it gives a
@@ -94,6 +96,30 @@ summary(model)
 ggplot(compas, aes(x=Person_ID, y=RawScore)) + 
   geom_point()+
   geom_smooth(method = lm)
+
+#the problem is that we're pooling the data by types of risk -- we need to look individually at 
+#each risk type
+no_appear <- compas[which(compas$DisplayText == 'Risk of Failure to Appear'),]
+violence <- compas[which(compas$DisplayText == 'Risk of Violence'),]
+recid <- compas[which(compas$DisplayText == 'Risk of Recidivism'),]
+model <- lm(no_appear$RawScore ~ no_appear$Person_ID)
+summary(model)
+ggplot(no_appear, aes(x=Person_ID, y=RawScore)) + 
+  geom_point()+
+  geom_smooth(method = lm)
+
+model <- lm(violence$RawScore ~ violence$Person_ID)
+summary(model)
+ggplot(violence, aes(x=Person_ID, y=RawScore)) + 
+  geom_point()+
+  geom_smooth(method = lm)
+
+model <- lm(recid$RawScore ~ recid$Person_ID)
+summary(model)
+ggplot(recid, aes(x=Person_ID, y=RawScore)) + 
+  geom_point()+
+  geom_smooth(method = lm)
+
 
 #we can repeat our analysis by subdividing our population into each individual type of risk
 #this is the "meat" of our analysis
@@ -146,7 +172,7 @@ type_of_risk <- function(x, y){
   
   diffs_df <- data.frame(x = diffs)
   
-  #we can also make the plot look nicer using ggplot (requirement 11)
+  #POINT 11 - we can also make the plot look nicer using ggplot
   print(ggplot(diffs_df, aes(x=x)) + 
     geom_histogram(binwidth=0.01, colour = "black") + geom_vline(xintercept = actual, colour = "red")
     + labs(title = paste("Permutation Test for ", x)))
