@@ -186,7 +186,7 @@ type_of_risk <- function(x, y){
   
   #to calculate the p-value, we use the empirical cdf
   percentile <- ecdf(diffs)
-  print((1 - percentile(0.2689452))*2)
+  print(paste('The permutation test p-value is', (1 - percentile(0.2689452))*2))
   
   type_white$id <- 'white'
   type_nonwhite$id <- 'non-white'
@@ -216,14 +216,15 @@ type_of_risk <- function(x, y){
   
   #the degrees of freedom
   deg.freedom = nw + nn - 2
-  print(pt(t_stat, deg.freedom, lower.tail = FALSE, log.p = FALSE)) #the p-value is sufficiently low for us to
+  print(paste("The two-sided t-test p-value is", (pt(t_stat, deg.freedom, lower.tail = FALSE, log.p = FALSE))))
+        #the p-value is sufficiently low for us to
   #reject the null hypothesis that no racial disparity
   
   #we can also try a z-test, using the theory
   diff_in_means = nonwhite_mean - white_mean; diff_in_means
   std_norm = sqrt(nonwhite_sd^2/nn + white_sd^2/nw)
   z_stat = diff_in_means/std_norm; z_stat
-  print(pnorm(z_stat, 0, 1, lower.tail = FALSE))
+  print(paste("The p-value for the z-test is", pnorm(z_stat, 0, 1, lower.tail = FALSE)))
   
   #let's compute a confidence interval 
   ####POINT 20: confidence interval
@@ -231,10 +232,10 @@ type_of_risk <- function(x, y){
   sigma_sq = var(all_scores); sigma_sq
   conf_lower = theta - 1.96 * (sqrt(sigma_sq))/(sqrt(total)); print(conf_lower) #bounds of conf interval
   conf_upper = theta + 1.96 * (sqrt(sigma_sq))/(sqrt(total)); print(conf_upper) #based on normal approximation
-  
+  print(paste("The confidence interval for the difference in means of the risk scores is", conf_lower, conf_upper))
   
   t.est <- t.test(type_nonwhite$RawScore, type_white$RawScore, var.equal=FALSE)$stat
-  print(t.est)
+  print(paste("The t-stat is", t.est))
   #now let's make a bootstrapped t-test
   means_nonwhite <- vector()
   means_white <- vector()
@@ -252,7 +253,7 @@ type_of_risk <- function(x, y){
   }
   t.stat.vect = vector(length=10000)
   t.vect <- replicate(10000, b())
-  print(1 - mean(t.est>t.vect))
+  print(paste("The percentile for our t-stat relative to bootstrapped t-stats is", 1 - mean(t.est>t.vect)))
 }
 type_of_risk('Risk of Violence', 0)
 type_of_risk('Risk of Recidivism', 0)
