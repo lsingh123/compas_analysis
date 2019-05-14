@@ -9,19 +9,18 @@ library(ggplot2)
 library(gmodels)
 library(stats4)
 
-compas[,DisplayText == 'Risk of Violence']
-
 #messy but there are two clear clusters we can isolate
 ggplot(compas, aes(x=RawScore)) + geom_histogram()
 ####POINT 11: ggplot
 #let's use R's built-in k-means cluster function
+set.seed(42)
 clusters <- kmeans(compas$RawScore, 2); clusters
 #storing the cluster of each point in the dataframe
 compas$cluster <- clusters$cluster
 
 
 #first cluster looks pretty bell shaped
-scores <- compas[which(compas$cluster == 1),]; head(scores)
+scores <- compas[which(compas$cluster == 2),]; head(scores)
 max <- max(scores$RawScore)
 min <- min(scores$RawScore)
 #squeezing the values to be between 0 and 1
@@ -41,7 +40,7 @@ plot + stat2
 ####REQUIRED: probability density curve overlaid on a histogram
 
 #second cluster 
-scores2 <- compas[which(compas$cluster == 2),]
+scores2 <- compas[which(compas$cluster == 1),]
 #translating the data to the origin
 #and transforming it to lie between 0 and 10
 scores2$score <- (scores2$RawScore - min(scores2$RawScore)) / 4
@@ -50,13 +49,14 @@ var <- var(scores2$score); var
 plot <- ggplot(scores2, aes(score)) + geom_histogram(aes(y = stat(density)), binwidth = 0.25); plot
 #let's try dgamma
 stat <- stat_function(fun = dgamma, args = list(mu), lwd = 1, col = "red")
-#dgamma appears to fit!
+#dgamma looks good!
 plot + stat
+#REQUIRED: probability density curve overlaid on a histogram
 
 #let's filter our data by race
 scores_black <- compas[which(compas$Ethnic_Code_Text == 'African-American'),]; head(scores_black)
 
-#here's some preliminary summary statistics for blacks, whites
+#here's some preliminary summary statistics for black people, white people
 mean(scores_black$RawScore)
 scores_white <- compas[which(compas$Ethnic_Code_Text == 'Caucasian'),]; head(scores_white)
 mean(scores_white$RawScore)
@@ -77,7 +77,7 @@ head(scores_nonwhite)
 #the risk of violence raw score to predict race? - if so, we've shown the algo might be biased
 ####POINT 15: logistic regression
 violence <- compas[which(compas$DisplayText == 'Risk of Violence'),]
-violence$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
+violence$race <- violence$Ethnic_Code_Text == "Caucasian"
 score <- violence$RawScore
 MLL<- function(alpha, beta) {
   -sum( log( exp(alpha+beta*score)/(1+exp(alpha+beta*score)) )*violence$race
@@ -89,10 +89,11 @@ b <- cov(score,violence$race)/var(score)    #easy way to get the slope
 a <- mean(violence$race) - b*mean(score);a  
 #We can add this regression line to the plot of the data
 abline(a, b, col = "red")
-#This is bad --- it gives a
+#This is bad - let's try logistic
 results<-mle(MLL, start = list(alpha = 0, beta = 0)) #an initial guess is required
 results@coef
-curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+#still not a great fit because high density of both groups on both sides
 
 #let's also try a linear regression
 ####POINT 14: linear regression
@@ -101,6 +102,7 @@ summary(model)
 ggplot(compas, aes(x=Person_ID, y=RawScore)) + 
   geom_point()+
   geom_smooth(method = lm)
+#this doesn't look very good either
 
 #the problem is that we're pooling the data by types of risk -- we need to look individually at 
 #each risk type
