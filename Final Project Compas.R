@@ -1,8 +1,10 @@
+rm(list = ls())
 #Final Project Math 23C
 #Lavanya S. and Shuvom S.
-#POINT 22: team consists of exactly 2 members
+####POINT 22: team consists of exactly 2 members
 
-compas <- read.csv ("compass/compas-scores-raw.csv"); View(compas)
+#setwd("/Users/shuvomsadhuka/Documents/GitHub/compas_analysis")
+compas <- read.csv ("compass/compas-scores-raw.csv"); #View(compas)
 library(ggplot2)
 library(gmodels)
 library(stats4)
@@ -11,11 +13,12 @@ compas[,DisplayText == 'Risk of Violence']
 
 #messy but there are two clear clusters we can isolate
 ggplot(compas, aes(x=RawScore)) + geom_histogram()
-#POINT 11: ggplot
+####POINT 11: ggplot
 #let's use R's built-in k-means cluster function
 clusters <- kmeans(compas$RawScore, 2); clusters
 #storing the cluster of each point in the dataframe
 compas$cluster <- clusters$cluster
+
 
 #first cluster looks pretty bell shaped
 scores <- compas[which(compas$cluster == 1),]; head(scores)
@@ -30,10 +33,12 @@ var <- var(scores$score); var
 param1 <- 15162/3725
 param2 <- 11913/3725
 #let's try dbeta
-stat <- stat_function(fun = dbeta, args = list(param1, param2), lwd = 1, col = "red")
+stat1 <- stat_function(fun = dbeta, args = list(param1, param2), lwd = 1, col = "red")
+stat2 <- stat_function(fun = dnorm, args = list(mu, sqrt(var)), lwd = 1, col = "red")
 #that looks quite accurate!
-plot + stat
-#REQUIRED: probability density curve overlaid on a histogram
+plot + stat1
+plot + stat2
+####REQUIRED: probability density curve overlaid on a histogram
 
 #second cluster 
 scores2 <- compas[which(compas$cluster == 2),]
@@ -70,7 +75,7 @@ head(scores_nonwhite)
 
 #let's do logistic regression on raw score and race (Bernoulli variable) - can we use 
 #the risk of violence raw score to predict race? - if so, we've shown the algo might be biased
-#POINT 15: logistic regression
+####POINT 15: logistic regression
 violence <- compas[which(compas$DisplayText == 'Risk of Violence'),]
 violence$race <- ifelse(compas$Ethnic_Code_Text == "Caucasian", 0, 1)
 score <- violence$RawScore
@@ -90,7 +95,7 @@ results@coef
 curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 
 #let's also try a linear regression
-#POINT 14: linear regression
+####POINT 14: linear regression
 model <- lm(compas$RawScore ~ compas$Person_ID)
 summary(model)
 ggplot(compas, aes(x=Person_ID, y=RawScore)) + 
@@ -122,7 +127,6 @@ ggplot(recid, aes(x=Person_ID, y=RawScore)) +
 
 
 #we can repeat our analysis by subdividing our population into each individual type of risk
-#this is the "meat" of our analysis
 type_of_risk <- function(x, y){
   library(ggplot2)
   stopifnot(y < 2)
@@ -149,10 +153,11 @@ type_of_risk <- function(x, y){
   length(type$RawScore)
   
   #here's our first statistical test: a permutation test!
-  #REQUIRED: permutation test
+  ####REQUIRED: permutation test
   #we want to do a 2-sample permutation test
   #first we compute the actual difference in means
   actual = mean(type_nonwhite$RawScore) - mean(type_white$RawScore)
+  diffs <- vector()
   
   for (i in 1:5000){
     all_scores <- c(type_white$RawScore, type_nonwhite$RawScore); length(all_scores)
@@ -172,7 +177,7 @@ type_of_risk <- function(x, y){
   
   diffs_df <- data.frame(x = diffs)
   
-  #POINT 11 - we can also make the plot look nicer using ggplot
+  ####POINT 11 - we can also make the plot look nicer using ggplot
   print(ggplot(diffs_df, aes(x=x)) + 
     geom_histogram(binwidth=0.01, colour = "black") + geom_vline(xintercept = actual, colour = "red")
     + labs(title = paste("Permutation Test for ", x)))
@@ -185,7 +190,7 @@ type_of_risk <- function(x, y){
   type_nonwhite$id <- 'non-white'
   
   #here's an example of a variation on a graph that we've seen before but haven't done in class 
-  #POINT 19 - a graphical display different from the ones in class
+  ####POINT 19 - a graphical display different from the ones in class
   Lengths <- data.frame(rbind(type_nonwhite, type_white))
   print(ggplot(Lengths, aes(RawScore, fill = id)) + 
     geom_histogram(alpha = 0.5, aes(y = ..density..), position = 'identity')
@@ -210,7 +215,7 @@ type_of_risk <- function(x, y){
   #the degrees of freedom
   deg.freedom = nw + nn - 2
   print(pt(t_stat, deg.freedom, lower.tail = FALSE, log.p = FALSE)) #the p-value is sufficiently low for us to
-  #reject the null hypothesis
+  #reject the null hypothesis that no racial disparity
   
   #we can also try a z-test, using the theory
   diff_in_means = nonwhite_mean - white_mean; diff_in_means
@@ -219,7 +224,7 @@ type_of_risk <- function(x, y){
   print(pnorm(z_stat, 0, 1, lower.tail = FALSE))
   
   #let's compute a confidence interval 
-  #POINT 20: confidence interval
+  ####POINT 20: confidence interval
   theta = diff_in_means
   sigma_sq = var(all_scores); sigma_sq
   conf_lower = theta - 1.96 * (sqrt(sigma_sq))/(sqrt(total)); print(conf_lower) #bounds of conf interval
@@ -231,6 +236,7 @@ type_of_risk <- function(x, y){
   #now let's make a bootstrapped t-test
   means_nonwhite <- vector()
   means_white <- vector()
+  
   #the bootstrap can also cross-check against sensitivity to outliers since
   #outliers have a small chance of being included in any given bootstrapped dataset
   #this counts as another simulation method
@@ -239,10 +245,7 @@ type_of_risk <- function(x, y){
     B <- sample(type_white$RawScore, nw, replace=T) 
     stud_test <- t.test(A, B, var.equal=FALSE)
     stud_test
-    #means_nonwhite <- c(means_nonwhite, mean(A))
-    #print(means_nonwhite)
-    #means_white <- c(means_white, mean(B))
-    #print(means_white)
+    
     return(stud_test$stat)
   }
   t.stat.vect = vector(length=10000)
