@@ -1,3 +1,8 @@
+#####THINGS TO INCLUDE IN rmd
+# one of the histograms, probability density functions
+# same analysis done for all three types of risk
+# pick one type of risk --> display chi-sq, contingency table, covariance, correlations, p-values
+install.packages('gmodels')
 rm(list = ls())
 #Final Project Math 23C
 #Lavanya S. and Shuvom S.
